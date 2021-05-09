@@ -11,7 +11,7 @@
 #include<SPI.h>
 
 //instance variables
-int relayPin = 1;
+int starterRelay = 1;
 int led = 2;
 int neutralSwitch = 3;
 //clutch switch only for manual 
@@ -20,21 +20,23 @@ int clutchRelay = 4;
 //relay to ignition switch to 
 //close ignition circuit and
 //start fuel pump and ecu
-int ignitionSwitch = 5;
+int ignitionRelay = 5;
 //setting engine input switch
 // as analog input
 int engineStarted = A0;
+int startRemote = 6;
 
 RH_ASK rf_driver;
 void setup() 
 {
   //initializing rf driver
   rf_driver.init();
-  pinMode(relayPin, OUTPUT);
+  pinMode(starterRelay, OUTPUT);
+  pinMode(ignitionRelay, OUTPUT);
   pinMode(led, OUTPUT);
   pinMode(neutralSwitch, INPUT);
   pinMode(clutchRelay, OUTPUT);
-  pinMode(ignitionSwitch, OUTPUT);
+  pinMode(startRemote, INPUT);
   //setting baud rate
   Serial.begin(9600);
 }
@@ -45,31 +47,38 @@ int voltage = 500;
 void loop() 
 {
  
-  //setting expected message buffer size
-  uint8_t buf[11];
-  uint8_t buflen = sizeof(buf);
-  //if reciever recieved start payload
-  if(rf_driver.recv(buf, &buflen))
+  //if reciever recieved start signal
+  if(digitalRead(startRemote) == HIGH);
   {
-    //if engine is not running, start engine
+    //if engine is not running, begin start sequence
     if(analogRead(engineStarted) < voltage)
     {
-      Serial.println("Starting Car Operations");
-      //opening ignition switch
-      digitalWrite(ignitionSwitch, HIGH);
-      //wait 2 seconds for fuel pump
-      delay(2000);
-      //send power to starter relay
-      //for 3 seconds to crank car
-      digitalWrite(relayPin, HIGH);
-      delay(3000);
-      digitalWrite(relayPin, LOW);
-      Serial.println("Completed Car Start Operations");
+      //if not in neutral, DO NOT START
+      if(digitalRead(neutralSwitch) == LOW)
+      {
+        Serial.println("Starting Car Operations");
+        //opening ignition switch
+        digitalWrite(ignitionRelay, HIGH);
+        //wait 2 seconds for fuel pump
+        delay(2000);
+        //send power to starter relay
+        //for 3 seconds to crank car
+        digitalWrite(starterRelay, HIGH);
+        delay(3000);
+        digitalWrite(starterRelay, LOW);
+        Serial.println("Completed Car Start Operations");
+      }
+      //else dont start engine
+      else
+      {
+        Serial.println("Car not in neutral!");
+      }
     }
+    //engine is already running
     else
     {
       Serial.println("Engine is running!");
     }
-  }
+  }//end start remote if block
   
 }
