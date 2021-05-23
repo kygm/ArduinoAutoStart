@@ -14,7 +14,7 @@
 //instance variables
 int starterRelay = 4;
 int led = 3;
-int neutralSwitch = 3;
+int neutralSafety = 3;
 //clutch switch only for manual 
 //cars, set to HIGH in loop function
 int clutchRelay = 0;
@@ -40,7 +40,7 @@ void setup()
   pinMode(starterRelay, OUTPUT);
   pinMode(ignitionRelay, OUTPUT);
   pinMode(led, OUTPUT);
-  pinMode(neutralSwitch, INPUT);
+  pinMode(neutralSafety, INPUT);
   pinMode(clutchRelay, OUTPUT);
   pinMode(reciever, INPUT);
   //setting baud rate
@@ -60,28 +60,38 @@ void loop()
     //if engine is not running, begin start sequence
     if(analogRead(engineStarted) < voltage)
     {
-      Serial.println("Starting Car Operations");
-      //opening ignition switch
-      digitalWrite(ignitionRelay, HIGH);
-      //wait 2 seconds for fuel pump
-      fuelPumpLight();
-      delay(2000);
-      //send power to starter relay
-      //for 3 seconds to crank car
-      runLed(true);
-      digitalWrite(starterRelay, HIGH);
-      delay(3000);
-      digitalWrite(starterRelay, LOW);
-      runLed(false);
-
-      if(analogRead(engineStarted) < voltage)
+      //if neutral switch is not on, ie car not 
+      //in neutral, DO NOT START ENGINE
+      if(digitalRead(neutralSafety) == HIGH)
       {
-        Serial.println("Error Starting Engine!");
-        runError();
+        Serial.println("Starting Car Operations");
+        //opening ignition switch
+        digitalWrite(ignitionRelay, HIGH);
+        //wait 2 seconds for fuel pump
+        fuelPumpLight();
+        delay(2000);
+        //send power to starter relay
+        //for 3 seconds to crank car
+        runLed(true);
+        digitalWrite(starterRelay, HIGH);
+        delay(3000);
+        digitalWrite(starterRelay, LOW);
+        runLed(false);
+  
+        if(analogRead(engineStarted) < voltage)
+        {
+          Serial.println("Error Starting Engine!");
+          runError();
+        }
+        else
+        {
+          Serial.println("Completed Car Start Operations");
+        }
       }
       else
       {
-        Serial.println("Completed Car Start Operations");
+        Serial.println("Car Not in Neutral!");
+        runError();
       }
 
     }
